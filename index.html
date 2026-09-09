@@ -804,11 +804,178 @@
     }
 
 
+
+    /* =====================================================
+       LIVE JOB RESULTS
+       ==================================================== */
+
+    .results-section {
+      display: none;
+      padding: 70px 7%;
+      background: #f7f9fc;
+      border-top: 1px solid #edf1f7;
+    }
+
+    .results-container {
+      max-width: 1050px;
+      margin: auto;
+    }
+
+    .results-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+
+    .results-heading h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.15;
+      letter-spacing: -1.5px;
+    }
+
+    .results-count {
+      color: #687691;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .job-results {
+      display: grid;
+      gap: 16px;
+    }
+
+    .job-result-card {
+      background: #ffffff;
+      border: 1px solid #e3eaf4;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 8px 25px rgba(16,42,99,0.05);
+      transition: 0.2s ease;
+    }
+
+    .job-result-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 35px rgba(16,42,99,0.09);
+    }
+
+    .job-result-title {
+      color: #102A63;
+      font-size: 19px;
+      font-weight: 800;
+      line-height: 1.35;
+      margin-bottom: 6px;
+    }
+
+    .job-result-company {
+      color: #53627c;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .job-result-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px 18px;
+      margin: 16px 0;
+      color: #687691;
+      font-size: 13px;
+    }
+
+    .job-result-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .job-result-snippet {
+      color: #687691;
+      font-size: 13px;
+      line-height: 1.65;
+      margin-bottom: 18px;
+    }
+
+    .job-result-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #edf1f7;
+    }
+
+    .job-source {
+      color: #8995aa;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .apply-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 18px;
+      background: #146EF5;
+      color: #ffffff;
+      border-radius: 22px;
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .apply-button:hover {
+      background: #0d5cda;
+    }
+
+    .results-status {
+      display: none;
+      text-align: center;
+      color: #687691;
+      padding: 30px 10px;
+      font-size: 15px;
+    }
+
+    .results-error {
+      display: none;
+      text-align: center;
+      background: #fff5f5;
+      border: 1px solid #ffd9d9;
+      color: #b42318;
+      border-radius: 14px;
+      padding: 18px;
+      font-size: 14px;
+    }
+
     /* =====================================================
        MOBILE
     ===================================================== */
 
     @media (max-width: 850px) {
+
+      .results-section {
+        padding: 60px 5%;
+      }
+
+      .results-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .job-result-card {
+        padding: 20px;
+      }
+
+      .job-result-bottom {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .apply-button {
+        width: 100%;
+      }
+
 
       header {
         padding: 0 5%;
@@ -1017,6 +1184,33 @@
 
   </section>
 
+
+
+  <!-- ===================================================
+       LIVE JOB RESULTS
+       ==================================================== -->
+
+  <section class="results-section" id="results">
+    <div class="results-container">
+
+      <div class="results-heading">
+        <div>
+          <div class="section-label">Live results</div>
+          <h2>Jobs matching your search</h2>
+        </div>
+        <div class="results-count" id="resultsCount"></div>
+      </div>
+
+      <div class="results-status" id="resultsStatus">
+        Searching for jobs...
+      </div>
+
+      <div class="results-error" id="resultsError"></div>
+
+      <div class="job-results" id="jobResults"></div>
+
+    </div>
+  </section>
 
   <!-- ===================================================
        SOURCES
@@ -1415,13 +1609,28 @@
 
   <script>
 
-    function searchJobs() {
+    async function searchJobs() {
 
       const job =
         document.getElementById("jobInput").value.trim();
 
       const location =
         document.getElementById("locationInput").value.trim();
+
+      const resultsSection =
+        document.getElementById("results");
+
+      const resultsStatus =
+        document.getElementById("resultsStatus");
+
+      const resultsError =
+        document.getElementById("resultsError");
+
+      const resultsContainer =
+        document.getElementById("jobResults");
+
+      const resultsCount =
+        document.getElementById("resultsCount");
 
 
       if (job === "") {
@@ -1434,28 +1643,214 @@
       }
 
 
-      let message =
-        "JobsILove job search is coming soon!";
+      resultsSection.style.display = "block";
+
+      resultsSection.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+
+      resultsContainer.innerHTML = "";
+      resultsError.style.display = "none";
+      resultsStatus.style.display = "block";
+      resultsStatus.textContent = "Searching for jobs...";
+      resultsCount.textContent = "";
 
 
-      if (location !== "") {
+      const apiUrl =
+        "https://jobsilove-backend.onrender.com/search?keyword=" +
+        encodeURIComponent(job) +
+        "&location=" +
+        encodeURIComponent(location || "India");
 
-        message +=
-          "\n\nSearch: " +
-          job +
-          "\nLocation: " +
-          location;
 
-      } else {
+      try {
 
-        message +=
-          "\n\nSearch: " +
-          job;
+        const response = await fetch(apiUrl);
+
+        const data = await response.json();
+
+
+        if (!response.ok || !data.success) {
+
+          throw new Error(
+            data.message || "Unable to search for jobs."
+          );
+
+        }
+
+
+        resultsStatus.style.display = "none";
+
+        const jobs = Array.isArray(data.jobs)
+          ? data.jobs
+          : [];
+
+
+        resultsCount.textContent =
+          (data.totalCount || jobs.length).toLocaleString() +
+          " jobs found";
+
+
+        if (jobs.length === 0) {
+
+          resultsContainer.innerHTML = `
+            <div class="job-result-card">
+              <div class="job-result-title">
+                No jobs found
+              </div>
+              <div class="job-result-company">
+                Try another job title, skill or location.
+              </div>
+            </div>
+          `;
+
+          return;
+        }
+
+
+        resultsContainer.innerHTML =
+          jobs.map(function(jobItem) {
+
+            const title =
+              escapeHtml(jobItem.title || "Job opportunity");
+
+            const company =
+              escapeHtml(jobItem.company || "Company not listed");
+
+            const jobLocation =
+              escapeHtml(jobItem.location || "Location not listed");
+
+            const salary =
+              escapeHtml(jobItem.salary || "Salary not disclosed");
+
+            const type =
+              escapeHtml(jobItem.type || "Job");
+
+            const source =
+              escapeHtml(jobItem.source || "Jooble");
+
+            const snippet =
+              cleanSnippet(jobItem.snippet || "");
+
+            const link =
+              safeJobLink(jobItem.link);
+
+
+            return `
+              <article class="job-result-card">
+
+                <div class="job-result-title">
+                  ${title}
+                </div>
+
+                <div class="job-result-company">
+                  ${company}
+                </div>
+
+                <div class="job-result-meta">
+
+                  <span>📍 ${jobLocation}</span>
+
+                  <span>💰 ${salary}</span>
+
+                  <span>💼 ${type}</span>
+
+                </div>
+
+                ${
+                  snippet
+                    ? `<div class="job-result-snippet">${snippet}</div>`
+                    : ""
+                }
+
+                <div class="job-result-bottom">
+
+                  <div class="job-source">
+                    Source: ${source}
+                  </div>
+
+                  <a
+                    class="apply-button"
+                    href="${link}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Apply
+                  </a>
+
+                </div>
+
+              </article>
+            `;
+
+          }).join("");
+
+
+      } catch (error) {
+
+        console.error("JobsILove search error:", error);
+
+        resultsStatus.style.display = "none";
+
+        resultsError.textContent =
+          "We couldn't load jobs right now. Please try again in a moment.";
+
+        resultsError.style.display = "block";
 
       }
 
+    }
 
-      alert(message);
+
+    function escapeHtml(value) {
+
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    }
+
+
+    function cleanSnippet(value) {
+
+      const temp =
+        document.createElement("div");
+
+      temp.innerHTML = String(value);
+
+      return escapeHtml(
+        temp.textContent || temp.innerText || ""
+      ).replace(/\s+/g, " ").trim();
+
+    }
+
+
+    function safeJobLink(value) {
+
+      try {
+
+        const url =
+          new URL(String(value || ""));
+
+        if (
+          url.protocol === "http:" ||
+          url.protocol === "https:"
+        ) {
+
+          return escapeHtml(url.href);
+
+        }
+
+      } catch (error) {
+        // Ignore invalid URLs.
+      }
+
+
+      return "#";
 
     }
 
