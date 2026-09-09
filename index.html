@@ -947,6 +947,35 @@
       font-size: 14px;
     }
 
+    .load-more-wrapper {
+      display: none;
+      justify-content: center;
+      margin-top: 28px;
+    }
+
+    .load-more-button {
+      border: none;
+      background: #102A63;
+      color: #ffffff;
+      padding: 13px 26px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .load-more-button:hover {
+      background: #0a1d46;
+      transform: translateY(-1px);
+    }
+
+    .load-more-button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     /* =====================================================
        MOBILE
     ===================================================== */
@@ -1208,6 +1237,17 @@
       <div class="results-error" id="resultsError"></div>
 
       <div class="job-results" id="jobResults"></div>
+
+      <div class="load-more-wrapper" id="loadMoreWrapper">
+        <button
+          class="load-more-button"
+          id="loadMoreButton"
+          type="button"
+          onclick="loadMoreJobs()"
+        >
+          Load More Jobs
+        </button>
+      </div>
 
     </div>
   </section>
@@ -1609,6 +1649,14 @@
 
   <script>
 
+    // JobsILove live search state
+    let currentPage = 1;
+    let currentJobKeyword = "";
+    let currentLocation = "";
+    let totalJobs = 0;
+    let isLoadingJobs = false;
+
+
     async function searchJobs() {
 
       const job =
@@ -1632,6 +1680,9 @@
       const resultsCount =
         document.getElementById("resultsCount");
 
+      const loadMoreWrapper =
+        document.getElementById("loadMoreWrapper");
+
 
       if (job === "") {
 
@@ -1641,6 +1692,13 @@
 
         return;
       }
+
+
+      // Start a completely new search.
+      currentPage = 1;
+      currentJobKeyword = job;
+      currentLocation = location || "India";
+      totalJobs = 0;
 
 
       resultsSection.style.display = "block";
@@ -1655,13 +1713,75 @@
       resultsStatus.style.display = "block";
       resultsStatus.textContent = "Searching for jobs...";
       resultsCount.textContent = "";
+      loadMoreWrapper.style.display = "none";
+
+
+      await fetchJobs(1, false);
+    }
+
+
+    async function loadMoreJobs() {
+
+      if (isLoadingJobs) {
+        return;
+      }
+
+      const nextPage = currentPage + 1;
+
+      await fetchJobs(nextPage, true);
+    }
+
+
+    async function fetchJobs(page, append) {
+
+      const resultsStatus =
+        document.getElementById("resultsStatus");
+
+      const resultsError =
+        document.getElementById("resultsError");
+
+      const resultsContainer =
+        document.getElementById("jobResults");
+
+      const resultsCount =
+        document.getElementById("resultsCount");
+
+      const loadMoreWrapper =
+        document.getElementById("loadMoreWrapper");
+
+      const loadMoreButton =
+        document.getElementById("loadMoreButton");
+
+
+      if (isLoadingJobs) {
+        return;
+      }
+
+      isLoadingJobs = true;
+
+
+      if (append) {
+
+        loadMoreButton.disabled = true;
+        loadMoreButton.textContent = "Loading more jobs...";
+
+      } else {
+
+        resultsStatus.style.display = "block";
+        resultsStatus.textContent = "Searching for jobs...";
+        resultsError.style.display = "none";
+        loadMoreWrapper.style.display = "none";
+
+      }
 
 
       const apiUrl =
         "https://jobsilove-backend.onrender.com/search?keyword=" +
-        encodeURIComponent(job) +
+        encodeURIComponent(currentJobKeyword) +
         "&location=" +
-        encodeURIComponent(location || "India");
+        encodeURIComponent(currentLocation) +
+        "&page=" +
+        encodeURIComponent(page);
 
 
       try {
@@ -1680,19 +1800,24 @@
         }
 
 
-        resultsStatus.style.display = "none";
-
         const jobs = Array.isArray(data.jobs)
           ? data.jobs
           : [];
 
 
+        totalJobs = data.totalCount || 0;
+        currentPage = data.page || page;
+
+
+        resultsStatus.style.display = "none";
+
+
         resultsCount.textContent =
-          (data.totalCount || jobs.length).toLocaleString() +
+          totalJobs.toLocaleString() +
           " jobs found";
 
 
-        if (jobs.length === 0) {
+        if (!append && jobs.length === 0) {
 
           resultsContainer.innerHTML = `
             <div class="job-result-card">
@@ -1705,11 +1830,13 @@
             </div>
           `;
 
+          loadMoreWrapper.style.display = "none";
+
           return;
         }
 
 
-        resultsContainer.innerHTML =
+        const jobsHtml =
           jobs.map(function(jobItem) {
 
             const title =
@@ -1787,16 +1914,71 @@
           }).join("");
 
 
+        if (append) {
+
+          // Add the next page below the existing jobs.
+          resultsContainer.insertAdjacentHTML(
+            "beforeend",
+            jobsHtml
+          );
+
+        } else {
+
+          // First page starts a fresh result list.
+          resultsContainer.innerHTML = jobsHtml;
+
+        }
+
+
+        // Show Load More while more jobs remain.
+        const loadedCards =
+          resultsContainer.querySelectorAll(".job-result-card").length;
+
+        if (
+          jobs.length > 0 &&
+          totalJobs > 0 &&
+          loadedCards < totalJobs
+        ) {
+
+          loadMoreWrapper.style.display = "flex";
+          loadMoreButton.disabled = false;
+          loadMoreButton.textContent = "Load More Jobs";
+
+        } else {
+
+          loadMoreWrapper.style.display = "none";
+
+        }
+
+
       } catch (error) {
 
         console.error("JobsILove search error:", error);
 
         resultsStatus.style.display = "none";
 
-        resultsError.textContent =
-          "We couldn't load jobs right now. Please try again in a moment.";
+
+        if (append) {
+
+          resultsError.textContent =
+            "We couldn't load more jobs right now. Please try again.";
+
+          loadMoreButton.disabled = false;
+          loadMoreButton.textContent = "Load More Jobs";
+
+        } else {
+
+          resultsError.textContent =
+            "We couldn't load jobs right now. Please try again in a moment.";
+
+        }
+
 
         resultsError.style.display = "block";
+
+      } finally {
+
+        isLoadingJobs = false;
 
       }
 
